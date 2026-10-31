@@ -6,17 +6,18 @@
 <title>Manu Gowda — Play to Explore</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { height: 100%; overflow: hidden; background: #0b1021; font-family: "Press Start 2P", ui-monospace, monospace; }
+  html, body { height: 100%; overflow: hidden; background: #0b1021; font-family: ui-monospace, "Courier New", monospace; }
   #game { display: block; width: 100vw; height: 100vh; image-rendering: pixelated; }
 
   .overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
     text-align: center; color: #e6edf3; padding: 24px; z-index: 20; }
   .panel { background: rgba(10,16,33,.92); border: 3px solid #3ddc97; border-radius: 10px;
     padding: 28px 24px; max-width: 460px; width: 100%; box-shadow: 0 0 0 4px #0b1021, 0 12px 40px rgba(0,0,0,.6); }
-  .panel h1 { font-size: 20px; color: #3ddc97; margin-bottom: 10px; letter-spacing: 1px; line-height: 1.5; }
-  .panel h2 { font-size: 13px; color: #9fb3c8; margin-bottom: 18px; line-height: 1.8; }
-  .panel p { font-size: 11px; color: #c7d3e0; line-height: 1.9; margin-bottom: 16px; }
-  .btn { display: inline-block; cursor: pointer; font-family: inherit; font-size: 11px;
+  .panel h1 { font-size: 22px; color: #3ddc97; margin-bottom: 10px; letter-spacing: 2px; }
+  .panel h2 { font-size: 13px; color: #9fb3c8; margin-bottom: 16px; }
+  .panel p { font-size: 12px; color: #c7d3e0; line-height: 1.9; margin-bottom: 16px; }
+  #result { color: #ffd166; font-size: 12px; letter-spacing: 1px; line-height: 2; }
+  .btn { display: inline-block; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: bold;
     background: #3ddc97; color: #0b1021; border: none; padding: 12px 18px; border-radius: 6px;
     margin: 6px; text-decoration: none; letter-spacing: 1px; box-shadow: 0 4px 0 #27996a; }
   .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #27996a; }
@@ -24,30 +25,31 @@
   .links { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; margin-top: 8px; }
   .hidden { display: none !important; }
 
-  /* top sign panel */
+  #bar { position: fixed; top: 0; left: 0; height: 5px; width: 100%; background: rgba(255,255,255,.08); z-index: 11; }
+  #barFill { height: 100%; width: 0; background: #3ddc97; transition: width .1s linear; }
+
   #sign { position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
     background: rgba(10,16,33,.92); border: 2px solid #ffd166; border-radius: 8px;
-    padding: 12px 16px; max-width: 90vw; color: #ffd166; text-align: center; z-index: 10;
-    transition: opacity .2s; }
-  #sign .t { font-size: 11px; margin-bottom: 8px; letter-spacing: 1px; }
-  #sign .b { font-size: 9px; color: #e6edf3; line-height: 1.8; }
+    padding: 12px 16px; max-width: 90vw; color: #ffd166; text-align: center; z-index: 10; }
+  #sign .t { font-size: 11px; margin-bottom: 8px; letter-spacing: 1px; font-weight: bold; }
+  #sign .b { font-size: 11px; color: #e6edf3; line-height: 1.7; white-space: pre-line; }
 
-  /* HUD */
-  #hud { position: fixed; top: 12px; left: 12px; color: #fff; font-size: 9px; z-index: 10;
-    background: rgba(0,0,0,.35); padding: 8px 10px; border-radius: 6px; line-height: 1.7; }
+  #hud { position: fixed; top: 14px; left: 12px; color: #fff; font-size: 11px; z-index: 10;
+    background: rgba(0,0,0,.35); padding: 8px 10px; border-radius: 6px; line-height: 1.8; }
   #hud b { color: #3ddc97; }
+  #mute { position: fixed; top: 14px; left: 130px; z-index: 13; cursor: pointer; font-family: inherit;
+    font-size: 14px; background: rgba(0,0,0,.35); border: 1px solid #3ddc97; color: #3ddc97;
+    border-radius: 6px; padding: 6px 9px; }
 
-  /* toast */
-  #toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) scale(.6);
-    background: #ffd166; color: #0b1021; font-size: 13px; padding: 10px 16px; border-radius: 8px;
-    z-index: 15; opacity: 0; pointer-events: none; letter-spacing: 1px; }
+  #toast { position: fixed; top: 46%; left: 50%; transform: translate(-50%,-50%) scale(.6);
+    background: #ffd166; color: #0b1021; font-size: 14px; font-weight: bold; padding: 10px 16px;
+    border-radius: 8px; z-index: 15; opacity: 0; pointer-events: none; letter-spacing: 1px; }
   #toast.show { animation: pop 1s ease forwards; }
   @keyframes pop { 0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}
     20%{opacity:1;transform:translate(-50%,-70%) scale(1.1)}
     80%{opacity:1;transform:translate(-50%,-80%) scale(1)}
     100%{opacity:0;transform:translate(-50%,-110%) scale(1)} }
 
-  /* touch controls */
   #touch { position: fixed; bottom: 0; left: 0; right: 0; z-index: 12;
     display: flex; justify-content: space-between; padding: 18px; pointer-events: none; }
   #touch .side { display: flex; gap: 14px; pointer-events: auto; }
@@ -57,47 +59,46 @@
   .pad:active { background: rgba(61,220,151,.4); }
   @media (hover:hover) and (pointer:fine) { #touch { display: none; } }
   .hint { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); color: #9fb3c8;
-    font-size: 9px; z-index: 10; letter-spacing: 1px; }
+    font-size: 10px; z-index: 10; letter-spacing: 1px; }
   @media (hover:none) { .hint { display:none; } }
-  #skip { position: fixed; top: 12px; right: 12px; z-index: 30; cursor: pointer;
-    font-family: inherit; font-size: 9px; letter-spacing: 1px; color: #9fb3c8;
+  #skip { position: fixed; top: 14px; right: 12px; z-index: 30; cursor: pointer;
+    font-family: inherit; font-size: 10px; letter-spacing: 1px; color: #9fb3c8;
     background: rgba(0,0,0,.35); border: 1px solid #3ddc97; border-radius: 6px; padding: 8px 10px; }
   #skip:active { color: #3ddc97; }
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
+<div id="bar"><div id="barFill"></div></div>
 
-<div id="hud" class="hidden">Skills <b><span id="got">0</span>/<span id="total">0</span></b></div>
+<div id="hud" class="hidden">Skills <b><span id="got">0</span>/<span id="total">0</span></b> · <span id="score">0</span></div>
+<button id="mute" class="hidden">🔊</button>
 <div id="sign" class="hidden"><div class="t"></div><div class="b"></div></div>
 <div id="toast"></div>
-<button id="skip">Skip ▸ Contact</button>
-<p class="hint">← →  move  ·  SPACE  jump</p>
+<p class="hint">← →  move  ·  SPACE  jump  ·  stomp the bugs</p>
 
 <div id="touch">
-  <div class="side">
-    <div class="pad" id="padL">◀</div>
-    <div class="pad" id="padR">▶</div>
-  </div>
+  <div class="side"><div class="pad" id="padL">◀</div><div class="pad" id="padR">▶</div></div>
   <div class="side"><div class="pad" id="padJ">▲</div></div>
 </div>
 
-<!-- Start screen -->
+<button id="skip">Skip ▸ Contact</button>
+
 <div class="overlay" id="startScreen">
   <div class="panel">
     <h1>MANU GOWDA</h1>
     <h2>Software Development Engineer</h2>
-    <p>This isn't a resume.<br>Walk right, collect my skills,<br>reach the gate to hire me.</p>
+    <p>This isn't a resume.<br>Run right, collect skills,<br>stomp bugs, reach the gate to hire me.</p>
     <button class="btn" id="startBtn">▶ START</button>
   </div>
 </div>
 
-<!-- End screen -->
 <div class="overlay hidden" id="endScreen">
   <div class="panel">
     <h1>YOU MADE IT!</h1>
     <h2>Let's build something together.</h2>
-    <p>Backend engineer — scalable REST APIs &amp; microservices in Java, Python, React.js. Based in Bangalore, open to work worldwide.</p>
+    <p id="result"></p>
+    <p>Backend engineer — scalable REST APIs &amp; microservices in Java, Python, React.js. Bangalore, open to work worldwide.</p>
     <div class="links">
       <a class="btn" href="https://github.com/manugowda19" target="_blank" rel="noopener">GitHub</a>
       <a class="btn" href="https://linkedin.com/in/manu-gowda-19-mg" target="_blank" rel="noopener">LinkedIn</a>
@@ -120,37 +121,64 @@
   }
   addEventListener('resize', resize); resize();
 
-  // --- world config ---
-  const GROUND = () => H - 80;          // ground top Y
+  // --- config ---
+  const GROUND = () => H - 80;
   const WORLD_END = 3600;
-  const G = 0.8, MOVE = 4.2, JUMP = 14;
+  const G = 0.8, MOVE = 4.4, JUMP = 14.5;
 
-  const player = { x: 80, y: 0, w: 30, h: 38, vx: 0, vy: 0, onGround: false, face: 1, step: 0 };
+  const player = { x: 80, y: 0, w: 30, h: 38, vx: 0, vy: 0, onGround: false, face: 1, step: 0, iFrames: 0 };
 
-  // skills as coins
+  // pits (x..x+w have no ground = fall hazard)
+  const pits = [ {x: 950, w: 95}, {x: 1800, w: 105}, {x: 2600, w: 100} ];
+  const inPit = x => pits.some(p => x > p.x && x < p.x + p.w);
+  // solid ground segments (world minus pits)
+  const segs = (() => {
+    const s = []; let cur = 0;
+    for (const p of [...pits].sort((a,b)=>a.x-b.x)) { s.push([cur, p.x]); cur = p.x + p.w; }
+    s.push([cur, WORLD_END + 400]); return s;
+  })();
+
+  // pipes = solid obstacles to jump
+  const pipes = [ {x: 700, w: 46, up: 54}, {x: 2300, w: 46, up: 74} ];
+
+  // skill coins
   const skills = ['Java','Python','Microservices','REST APIs','React.js','MySQL','FastAPI','Docker','Linux','Git'];
   const coins = skills.map((label, i) => ({
-    x: 360 + i * 300 + (i % 2 ? 0 : 40),
-    y: () => GROUND() - (i % 3 === 1 ? 150 : 70),
-    label, got: false, t: i * 0.6
+    x: 360 + i * 300 + (i % 2 ? 0 : 40), yo: (i % 3 === 1 ? 118 : 48), label, got: false, t: i * 0.6
   }));
   document.getElementById('total').textContent = skills.length;
 
-  // signposts (achievements)
+  // bugs (patrol ground)
+  const bugDefs = [ {x: 500, lo: 420, hi: 650}, {x: 1350, lo: 1250, hi: 1550},
+                    {x: 2050, lo: 1950, hi: 2200}, {x: 3150, lo: 3050, hi: 3350} ];
+  let bugs = [];
+
   const signs = [
-    { x: 300,  t: 'HOW TO PLAY', b: 'Run right. Jump the coins.\nReach the green gate.' },
+    { x: 300,  t: 'HOW TO PLAY', b: 'Run right. Jump pits & pipes.\nStomp bugs. Reach the gate.' },
     { x: 1250, t: 'ACHIEVEMENT', b: 'Winner — Open Hackathon 2026\nGITAM University, Bangalore' },
-    { x: 2150, t: 'ACHIEVEMENT', b: 'Best Project Award 2026\nAI/ML Cybersecurity, Univ. Exhibition' },
-    { x: 2950, t: 'GRIND', b: '250+ problems solved\non LeetCode & GeeksforGeeks' },
+    { x: 2150, t: 'ACHIEVEMENT', b: 'Best Project Award 2026\nAI/ML Cybersecurity' },
+    { x: 2950, t: 'THE GRIND', b: '250+ problems solved\non LeetCode & GeeksforGeeks' },
   ];
+  const checkpoints = [80, 1250, 2150, 2950];
 
-  // platforms (visual + reach high coins) {x,y-offset-from-ground,w,h}
-  const plats = [
-    { x: 620, up: 110, w: 120 }, { x: 1540, up: 150, w: 120 },
-    { x: 2440, up: 120, w: 120 }, { x: 1900, up: 90, w: 110 },
-  ];
+  let got = 0, score = 0, stomps = 0, cam = 0, state = 'start', t = 0, frames = 0, shake = 0;
+  let particles = [];
 
-  let got = 0, cam = 0, state = 'start', t = 0;
+  // --- audio (lazy, user-gesture) ---
+  let AC = null, muted = false;
+  function beep(freq, dur, type = 'square', vol = 0.06) {
+    if (muted || !AC) return;
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = type; o.frequency.value = freq; o.connect(g); g.connect(AC.destination);
+    g.gain.setValueAtTime(vol, AC.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, AC.currentTime + dur);
+    o.start(); o.stop(AC.currentTime + dur);
+  }
+  const sCoin = () => { beep(880, .08); setTimeout(() => beep(1320, .09), 60); };
+  const sJump = () => beep(520, .12, 'sine', .05);
+  const sStomp = () => { beep(200, .1, 'sawtooth', .08); setTimeout(() => beep(120, .12, 'sawtooth'), 50); };
+  const sHurt = () => beep(140, .25, 'sawtooth', .07);
+  const sWin = () => [0,120,240].forEach((d,i) => setTimeout(() => beep([660,880,1180][i], .15), d));
 
   // --- input ---
   const keys = { left: false, right: false, jump: false };
@@ -167,74 +195,121 @@
   bind('padL','left'); bind('padR','right'); bind('padJ','jump');
 
   // --- ui ---
-  const startScreen = document.getElementById('startScreen');
-  const endScreen = document.getElementById('endScreen');
-  const hud = document.getElementById('hud');
-  const signEl = document.getElementById('sign');
-  const toastEl = document.getElementById('toast');
+  const startScreen = document.getElementById('startScreen'), endScreen = document.getElementById('endScreen');
+  const hud = document.getElementById('hud'), signEl = document.getElementById('sign');
+  const toastEl = document.getElementById('toast'), muteBtn = document.getElementById('mute');
+  const barFill = document.getElementById('barFill'), scoreEl = document.getElementById('score');
   function toast(msg) { toastEl.textContent = msg; toastEl.classList.remove('show');
     void toastEl.offsetWidth; toastEl.classList.add('show'); }
+  function burst(x, y, col) { for (let i=0;i<10;i++) particles.push({
+    x, y, vx:(Math.random()-.5)*5, vy:-Math.random()*5-1, life:30, col }); }
 
   function reset() {
-    player.x = 80; player.y = GROUND() - player.h; player.vx = player.vy = 0;
-    coins.forEach(c => c.got = false); got = 0;
-    document.getElementById('got').textContent = 0;
+    player.x = 80; player.y = GROUND() - player.h; player.vx = player.vy = 0; player.iFrames = 0;
+    coins.forEach(c => c.got = false); got = score = stomps = 0; frames = 0; particles = [];
+    bugs = bugDefs.map(b => ({ ...b, dir: 1, alive: true, w: 26, h: 20 }));
+    scoreEl.textContent = 0; document.getElementById('got').textContent = 0;
   }
-  function start() { reset(); state = 'play'; startScreen.classList.add('hidden');
-    endScreen.classList.add('hidden'); hud.classList.remove('hidden'); }
+  function start() {
+    if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} }
+    reset(); state = 'play';
+    startScreen.classList.add('hidden'); endScreen.classList.add('hidden');
+    hud.classList.remove('hidden'); muteBtn.classList.remove('hidden');
+  }
   document.getElementById('startBtn').onclick = start;
   document.getElementById('replayBtn').onclick = start;
-  document.getElementById('skip').onclick = () => {
+  document.getElementById('skip').onclick = () => { finish(true); };
+  muteBtn.onclick = () => { muted = !muted; muteBtn.textContent = muted ? '🔇' : '🔊'; };
+
+  function finish(skipped) {
     state = 'end'; startScreen.classList.add('hidden'); endScreen.classList.remove('hidden');
-  };
+    if (!skipped) { sWin();
+      const sec = Math.floor(frames / 60), mm = Math.floor(sec/60), ss = String(sec%60).padStart(2,'0');
+      document.getElementById('result').textContent =
+        `Score ${score} · Time ${mm}:${ss} · Bugs ${stomps} · Skills ${got}/${skills.length}`;
+    } else { document.getElementById('result').textContent = ''; }
+  }
 
-  // --- update ---
+  function groundTop() { return GROUND(); }
+  function respawn() {
+    let cp = checkpoints[0];
+    for (const c of checkpoints) if (player.x >= c - 20) cp = c;
+    player.x = cp; player.y = groundTop() - player.h - 40; player.vx = player.vy = 0;
+    player.iFrames = 60; shake = 8; sHurt();
+  }
+
   function update() {
-    t += 1;
+    t++;
     if (state !== 'play') return;
+    frames++;
+    if (player.iFrames > 0) player.iFrames--;
+    if (shake > 0) shake *= 0.85;
 
+    // horizontal
     player.vx = (keys.right ? MOVE : 0) - (keys.left ? MOVE : 0);
     if (player.vx) player.face = player.vx > 0 ? 1 : -1;
-    if (keys.jump && player.onGround) { player.vy = -JUMP; player.onGround = false; }
-
-    player.vy += G;
-    player.x += player.vx; player.y += player.vy;
-
-    // world bounds
+    player.x += player.vx;
+    // pipe horizontal block
+    for (const p of pipes) { const py = groundTop() - p.up;
+      if (player.y + player.h > py + 2 && player.x + player.w > p.x && player.x < p.x + p.w) {
+        if (player.vx > 0) player.x = p.x - player.w; else if (player.vx < 0) player.x = p.x + p.w;
+      } }
     if (player.x < 10) player.x = 10;
-    if (player.x > WORLD_END) { state = 'end'; endScreen.classList.remove('hidden'); }
+    if (player.x > WORLD_END) return finish(false);
 
-    // ground
-    const gy = GROUND();
+    // vertical
+    if (keys.jump && player.onGround) { player.vy = -JUMP; player.onGround = false; sJump(); }
+    player.vy += G; player.y += player.vy;
     player.onGround = false;
-    if (player.y + player.h >= gy) { player.y = gy - player.h; player.vy = 0; player.onGround = true; }
+    const gy = groundTop();
 
-    // platforms (land from above)
-    for (const p of plats) {
-      const py = gy - p.up, px = p.x;
-      if (player.x + player.w > px && player.x < px + p.w &&
-          player.y + player.h >= py && player.y + player.h <= py + 20 && player.vy >= 0) {
-        player.y = py - player.h; player.vy = 0; player.onGround = true;
-      }
-    }
+    // ground (unless over pit)
+    const cx = player.x + player.w / 2;
+    if (!inPit(cx) && player.y + player.h >= gy) { player.y = gy - player.h; player.vy = 0; player.onGround = true; }
+    // pipe top
+    for (const p of pipes) { const py = gy - p.up;
+      if (player.x + player.w > p.x && player.x < p.x + p.w &&
+          player.y + player.h >= py && player.y + player.h <= py + 22 && player.vy >= 0) {
+        player.y = py - player.h; player.vy = 0; player.onGround = true; } }
+    // fell in pit
+    if (player.y > H + 80) respawn();
 
-    // walking animation
     if (player.vx && player.onGround) player.step += 0.3; else player.step = 0;
 
-    // coins
-    for (const c of coins) {
-      if (c.got) continue;
-      const cy = c.y();
-      if (Math.abs((player.x + player.w/2) - c.x) < 28 && Math.abs((player.y + player.h/2) - cy) < 34) {
-        c.got = true; got++; document.getElementById('got').textContent = got;
-        toast('+ ' + c.label);
+    // bugs
+    for (const b of bugs) {
+      if (!b.alive) continue;
+      b.x += b.dir * 1.1;
+      if (b.x < b.lo) b.dir = 1; if (b.x > b.hi) b.dir = -1;
+      const by = gy - b.h;
+      const hit = player.x + player.w > b.x && player.x < b.x + b.w &&
+                  player.y + player.h > by && player.y < by + b.h;
+      if (!hit) continue;
+      if (player.vy > 0 && player.y + player.h < by + 16) {   // stomp
+        b.alive = false; player.vy = -10; stomps++; score += 150;
+        scoreEl.textContent = score; burst(b.x + b.w/2, by, '#ff6b6b'); shake = 6; sStomp(); toast('BUG SQUASHED!');
+      } else if (player.iFrames === 0) {                       // hurt
+        player.iFrames = 70; player.vx = 0; player.vy = -6;
+        player.x -= player.face * 40; shake = 8; sHurt();
       }
     }
 
-    // camera
-    cam = Math.max(0, Math.min(player.x - W * 0.35, WORLD_END - W + 200));
+    // coins
+    for (const c of coins) { if (c.got) continue;
+      const cy = gy - c.yo;
+      if (Math.abs((player.x + player.w/2) - c.x) < 30 && Math.abs((player.y + player.h/2) - cy) < 42) {
+        c.got = true; got++; score += 100; scoreEl.textContent = score;
+        document.getElementById('got').textContent = got;
+        burst(c.x, cy, '#ffd166'); sCoin(); toast('+ ' + c.label);
+      } }
 
-    // nearest sign
+    // particles
+    particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.3; p.life--; });
+    particles = particles.filter(p => p.life > 0);
+
+    cam = Math.max(0, Math.min(player.x - W * 0.35, WORLD_END - W + 200));
+    barFill.style.width = Math.min(100, player.x / WORLD_END * 100) + '%';
+
     let near = null;
     for (const s of signs) if (Math.abs(player.x - s.x) < 150) near = s;
     if (near) { signEl.querySelector('.t').textContent = near.t;
@@ -242,96 +317,95 @@
     else signEl.classList.add('hidden');
   }
 
-  // --- draw helpers ---
-  function roundedBg() {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, '#1a2a52'); g.addColorStop(1, '#0b1021');
+  // --- draw ---
+  function bg() {
+    const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0,'#1a2a52'); g.addColorStop(1,'#0b1021');
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    // stars
     ctx.fillStyle = 'rgba(255,255,255,.5)';
-    for (let i = 0; i < 40; i++) {
-      const sx = ((i * 277) % (W + 200)) - 100;
-      const sy = (i * 131) % (H * 0.6);
-      ctx.fillRect(sx, sy, 2, 2);
-    }
+    for (let i=0;i<40;i++) ctx.fillRect(((i*277)%(W+200))-100, (i*131)%(H*0.6), 2, 2);
   }
-  function hill(x, r, col) { ctx.fillStyle = col; ctx.beginPath();
-    ctx.arc(x - cam, GROUND(), r, Math.PI, 0); ctx.fill(); }
-
   function drawPlayer() {
+    if (player.iFrames > 0 && Math.floor(t/4)%2) return; // blink
     const x = player.x - cam, y = player.y, f = player.face;
-    ctx.save(); ctx.translate(x + player.w/2, y); ctx.scale(f, 1); ctx.translate(-player.w/2, 0);
-    const legSwing = Math.sin(player.step) * 5;
-    // legs
+    ctx.save(); ctx.translate(x + player.w/2, y); ctx.scale(f,1); ctx.translate(-player.w/2,0);
+    const sw = Math.sin(player.step) * 5;
     ctx.fillStyle = '#1b3a6b';
-    ctx.fillRect(4, player.h - 10, 9, 10 + (player.onGround ? legSwing : 0));
-    ctx.fillRect(17, player.h - 10, 9, 10 - (player.onGround ? legSwing : 0));
-    // body
-    ctx.fillStyle = '#3ddc97'; ctx.fillRect(2, 12, 26, player.h - 20);
-    // head
+    ctx.fillRect(4, player.h-10, 9, 10 + (player.onGround?sw:0));
+    ctx.fillRect(17, player.h-10, 9, 10 - (player.onGround?sw:0));
+    ctx.fillStyle = '#3ddc97'; ctx.fillRect(2, 12, 26, player.h-20);
     ctx.fillStyle = '#ffdfba'; ctx.fillRect(5, 0, 20, 16);
-    // cap
     ctx.fillStyle = '#27996a'; ctx.fillRect(3, -2, 24, 7); ctx.fillRect(22, 2, 8, 4);
-    // eye
     ctx.fillStyle = '#0b1021'; ctx.fillRect(18, 6, 3, 3);
     ctx.restore();
   }
-
+  function drawBug(b) {
+    if (!b.alive) return; const x = b.x - cam, y = groundTop() - b.h;
+    const wob = Math.sin(t*0.3 + b.x) * 2;
+    ctx.fillStyle = '#ff6b6b'; ctx.fillRect(x, y+wob, b.w, b.h-4);
+    ctx.fillStyle = '#c0392b'; ctx.fillRect(x+4, y+4+wob, b.w-8, 4);
+    ctx.fillStyle = '#fff'; ctx.fillRect(x+4, y+2+wob, 5, 5); ctx.fillRect(x+b.w-9, y+2+wob, 5, 5);
+    ctx.fillStyle = '#0b1021'; ctx.fillRect(x+6, y+4+wob, 2, 2); ctx.fillRect(x+b.w-7, y+4+wob, 2, 2);
+    // legs
+    ctx.strokeStyle = '#c0392b'; ctx.lineWidth = 2; ctx.beginPath();
+    for (let i=0;i<3;i++){ const lx=x+6+i*7; ctx.moveTo(lx,y+b.h-4+wob); ctx.lineTo(lx-2,y+b.h+2+wob);
+      ctx.moveTo(lx,y+b.h-4+wob); ctx.lineTo(lx+2,y+b.h+2+wob);} ctx.stroke();
+  }
   function draw() {
-    roundedBg();
-    // parallax hills
+    bg();
     ctx.save();
-    hill(400 - cam*0.3 + cam, 160, '#16244a');
-    hill(1100 - cam*0.3 + cam, 200, '#16244a');
-    hill(2000 - cam*0.3 + cam, 180, '#16244a');
-    ctx.restore();
+    if (shake > 0.5) ctx.translate((Math.random()-.5)*shake, (Math.random()-.5)*shake);
+    const gy = groundTop();
+    // hills
+    ctx.fillStyle = '#16244a';
+    [[400,160],[1100,200],[2000,180],[3100,170]].forEach(([hx,r]) => {
+      ctx.beginPath(); ctx.arc(hx - cam, gy, r, Math.PI, 0); ctx.fill(); });
 
-    // ground
-    const gy = GROUND();
-    ctx.fillStyle = '#2d5a3d'; ctx.fillRect(0, gy, W, 12);
-    ctx.fillStyle = '#1e3d2a'; ctx.fillRect(0, gy + 12, W, H - gy);
-    // ground texture bricks
-    ctx.fillStyle = 'rgba(0,0,0,.2)';
-    for (let bx = -(cam % 40); bx < W; bx += 40) ctx.fillRect(bx, gy + 12, 2, H - gy);
+    // ground segments (pits are gaps)
+    for (const [a,b] of segs) {
+      const x = a - cam, w = b - a; if (x > W || x + w < 0) continue;
+      ctx.fillStyle = '#2d5a3d'; ctx.fillRect(x, gy, w, 12);
+      ctx.fillStyle = '#1e3d2a'; ctx.fillRect(x, gy+12, w, H-gy);
+      ctx.fillStyle = 'rgba(0,0,0,.2)';
+      for (let bx = x - (x%40); bx < x+w; bx += 40) if (bx>=x) ctx.fillRect(bx, gy+12, 2, H-gy);
+    }
 
-    // platforms
-    for (const p of plats) { const py = gy - p.up;
-      ctx.fillStyle = '#8a5a2b'; ctx.fillRect(p.x - cam, py, p.w, 14);
-      ctx.fillStyle = '#6b4420'; ctx.fillRect(p.x - cam, py + 14, p.w, 6); }
+    // pipes
+    for (const p of pipes) { const py = gy - p.up, x = p.x - cam;
+      ctx.fillStyle = '#2aa96a'; ctx.fillRect(x, py, p.w, p.up);
+      ctx.fillStyle = '#39d884'; ctx.fillRect(x-5, py, p.w+10, 14);
+      ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(x+4, py+16, 5, p.up-16); }
 
     // signs
-    for (const s of signs) { const sx = s.x - cam;
-      if (sx < -60 || sx > W + 60) continue;
-      ctx.fillStyle = '#6b4420'; ctx.fillRect(sx - 2, gy - 60, 6, 60);
-      ctx.fillStyle = '#ffd166'; ctx.fillRect(sx - 20, gy - 86, 44, 30);
-      ctx.fillStyle = '#0b1021'; ctx.font = 'bold 20px monospace'; ctx.textAlign = 'center';
-      ctx.fillText('!', sx + 2, gy - 64); }
+    for (const s of signs) { const sx = s.x - cam; if (sx<-60||sx>W+60) continue;
+      ctx.fillStyle='#6b4420'; ctx.fillRect(sx-2, gy-60, 6, 60);
+      ctx.fillStyle='#ffd166'; ctx.fillRect(sx-20, gy-86, 44, 30);
+      ctx.fillStyle='#0b1021'; ctx.font='bold 20px monospace'; ctx.textAlign='center'; ctx.fillText('!', sx+2, gy-64); }
 
     // coins
-    for (const c of coins) { if (c.got) continue;
-      const cx = c.x - cam, cy = c.y();
-      if (cx < -40 || cx > W + 40) continue;
-      const bob = Math.sin(t * 0.08 + c.t) * 4;
-      ctx.save(); ctx.translate(cx, cy + bob);
-      const sw = Math.abs(Math.cos(t * 0.06 + c.t)); // spin
-      ctx.fillStyle = '#ffd166'; ctx.beginPath();
-      ctx.ellipse(0, 0, 11 * sw + 2, 13, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#e0a800'; ctx.beginPath();
-      ctx.ellipse(0, 0, 6 * sw + 1, 8, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.restore(); }
+    for (const c of coins) { if (c.got) continue; const cx=c.x-cam, cy=gy-c.yo;
+      if (cx<-40||cx>W+40) continue; const bob=Math.sin(t*0.08+c.t)*4, spin=Math.abs(Math.cos(t*0.06+c.t));
+      ctx.save(); ctx.translate(cx, cy+bob);
+      ctx.fillStyle='#ffd166'; ctx.beginPath(); ctx.ellipse(0,0,11*spin+2,13,0,0,7); ctx.fill();
+      ctx.fillStyle='#e0a800'; ctx.beginPath(); ctx.ellipse(0,0,6*spin+1,8,0,0,7); ctx.fill(); ctx.restore(); }
 
-    // end gate
+    bugs.forEach(drawBug);
+
+    // particles
+    particles.forEach(p => { ctx.globalAlpha = Math.max(0, p.life/30);
+      ctx.fillStyle = p.col; ctx.fillRect(p.x-cam, p.y, 4, 4); });
+    ctx.globalAlpha = 1;
+
+    // gate
     const ex = WORLD_END - cam;
-    if (ex < W + 100) {
-      ctx.fillStyle = '#3ddc97'; ctx.fillRect(ex, gy - 180, 8, 180);
-      ctx.fillStyle = '#27996a';
-      ctx.beginPath(); ctx.moveTo(ex + 8, gy - 180); ctx.lineTo(ex + 70, gy - 160);
-      ctx.lineTo(ex + 8, gy - 140); ctx.fill();
-      ctx.fillStyle = '#0b1021'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
-      ctx.fillText('HIRE', ex + 32, gy - 157);
+    if (ex < W+100) {
+      ctx.fillStyle='#3ddc97'; ctx.fillRect(ex, gy-180, 8, 180);
+      ctx.fillStyle='#27996a'; ctx.beginPath();
+      ctx.moveTo(ex+8, gy-180); ctx.lineTo(ex+70, gy-160); ctx.lineTo(ex+8, gy-140); ctx.fill();
+      ctx.fillStyle='#0b1021'; ctx.font='bold 10px monospace'; ctx.textAlign='center'; ctx.fillText('HIRE', ex+32, gy-157);
     }
 
     if (state === 'play' || state === 'end') drawPlayer();
+    ctx.restore();
   }
 
   function loop() { update(); draw(); requestAnimationFrame(loop); }
