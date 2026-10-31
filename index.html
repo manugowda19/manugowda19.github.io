@@ -59,6 +59,10 @@
   .hint { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); color: #9fb3c8;
     font-size: 9px; z-index: 10; letter-spacing: 1px; }
   @media (hover:none) { .hint { display:none; } }
+  #skip { position: fixed; top: 12px; right: 12px; z-index: 30; cursor: pointer;
+    font-family: inherit; font-size: 9px; letter-spacing: 1px; color: #9fb3c8;
+    background: rgba(0,0,0,.35); border: 1px solid #3ddc97; border-radius: 6px; padding: 8px 10px; }
+  #skip:active { color: #3ddc97; }
 </style>
 </head>
 <body>
@@ -67,6 +71,7 @@
 <div id="hud" class="hidden">Skills <b><span id="got">0</span>/<span id="total">0</span></b></div>
 <div id="sign" class="hidden"><div class="t"></div><div class="b"></div></div>
 <div id="toast"></div>
+<button id="skip">Skip ▸ Contact</button>
 <p class="hint">← →  move  ·  SPACE  jump</p>
 
 <div id="touch">
@@ -179,6 +184,9 @@
     endScreen.classList.add('hidden'); hud.classList.remove('hidden'); }
   document.getElementById('startBtn').onclick = start;
   document.getElementById('replayBtn').onclick = start;
+  document.getElementById('skip').onclick = () => {
+    state = 'end'; startScreen.classList.add('hidden'); endScreen.classList.remove('hidden');
+  };
 
   // --- update ---
   function update() {
