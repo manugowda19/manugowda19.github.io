@@ -126,7 +126,7 @@
   const WORLD_END = 3600;
   const G = 0.8, MOVE = 4.4, JUMP = 14.5;
 
-  const player = { x: 80, y: 0, w: 30, h: 38, vx: 0, vy: 0, onGround: false, face: 1, step: 0, iFrames: 0, coyote: 0 };
+  const player = { x: 80, y: 0, w: 30, h: 38, vx: 0, vy: 0, onGround: false, face: 1, step: 0, iFrames: 0, coyote: 0, spring: 0 };
   let lastJump = false;
 
   // pits (x..x+w have no ground = fall hazard)
@@ -158,14 +158,17 @@
   const flyerDefs = [ {x: 1500, y0: 150, amp: 36, sw: 90 }, {x: 2750, y0: 130, amp: 44, sw: 70 } ];
   let flyers = [];
 
-  // moving platform over the 2nd pit
-  const mplats = [ {x0: 1740, x1: 1960, up: 46, w: 86, x: 1740, px: 1740 } ];
+  // moving platform (disabled in favour of springs)
+  const mplats = [];
+
+  // bounce springs just before each pit — land on one to launch across
+  const pads = pits.map(p => ({ x: p.x - 44, w: 36, sq: 0 }));
 
   // parallax clouds
   const clouds = Array.from({length: 9}, (_, i) => ({ x: i*470+120, y: 50+(i%3)*44, s: 34+(i%3)*12 }));
 
   const signs = [
-    { x: 300,  t: 'HOW TO PLAY', b: 'Run right. Jump pits & pipes.\nStomp bugs. Reach the gate.' },
+    { x: 300,  t: 'HOW TO PLAY', b: 'Run right. Hit green springs to\nfly over pits. Stomp bugs & drones.' },
     { x: 1250, t: 'ACHIEVEMENT', b: 'Winner — Open Hackathon 2026\nGITAM University, Bangalore' },
     { x: 2150, t: 'ACHIEVEMENT', b: 'Best Project Award 2026\nAI/ML Cybersecurity' },
     { x: 2950, t: 'THE GRIND', b: '250+ problems solved\non LeetCode & GeeksforGeeks' },
@@ -268,6 +271,7 @@
     if (state !== 'play') return;
     frames++;
     if (player.iFrames > 0) player.iFrames--;
+    if (player.spring > 0) player.spring--;
     if (shake > 0) shake *= 0.85;
 
     // horizontal
@@ -285,7 +289,7 @@
     // vertical (coyote time + variable jump height)
     const jp = keys.jump && !lastJump;
     if (jp && (player.onGround || player.coyote > 0)) { player.vy = -JUMP; player.onGround = false; player.coyote = 0; sJump(); }
-    if (!keys.jump && player.vy < -4) player.vy = -4; // jump cut on release
+    if (!keys.jump && player.vy < -4 && player.spring <= 0) player.vy = -4; // jump cut on release
     player.vy += G; player.y += player.vy;
     player.onGround = false;
     const gy = groundTop();
@@ -306,6 +310,15 @@
       if (player.x + player.w > m.x && player.x < m.x + m.w &&
           player.y + player.h >= my && player.y + player.h <= my + 22 && player.vy >= 0) {
         player.y = my - player.h; player.vy = 0; player.onGround = true; player.x += (m.x - m.px);
+      }
+    }
+    // bounce springs: landing on one launches you up & across
+    for (const pd of pads) {
+      if (pd.sq > 0) pd.sq--;
+      if (player.onGround && player.vy >= 0 &&
+          player.x + player.w > pd.x && player.x < pd.x + pd.w) {
+        player.vy = -21; player.onGround = false; player.coyote = 0; player.spring = 30; pd.sq = 10;
+        shake = 5; sJump(); burst(pd.x + pd.w/2, gy, '#39d884'); toast('BOING!');
       }
     }
     // coyote time bookkeeping
@@ -450,6 +463,15 @@
       ctx.fillStyle = '#2aa96a'; ctx.fillRect(x, py, p.w, p.up);
       ctx.fillStyle = '#39d884'; ctx.fillRect(x-5, py, p.w+10, 14);
       ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(x+4, py+16, 5, p.up-16); }
+
+    // bounce springs
+    for (const pd of pads) { const x = pd.x - cam; if (x < -60 || x > W + 60) continue;
+      const h = 26 - pd.sq * 1.4, topY = gy - h;              // compresses when hit
+      ctx.fillStyle = '#39d884'; ctx.fillRect(x - 3, gy - 6, pd.w + 6, 6);   // base
+      ctx.strokeStyle = '#2aa96a'; ctx.lineWidth = 3; ctx.beginPath();        // coil
+      for (let i = 0; i <= 4; i++) { const yy = gy - 6 - (i/4)*(h-10);
+        ctx.lineTo(x + (i % 2 ? pd.w - 6 : 6), yy); } ctx.stroke();
+      ctx.fillStyle = '#5cf0a0'; ctx.fillRect(x - 3, topY, pd.w + 6, 6); }    // top plate
 
     // moving platforms
     for (const m of mplats) { const my = gy - m.up, x = m.x - cam;
